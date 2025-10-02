@@ -112,7 +112,7 @@ if st.button("Start Predict", use_container_width=True):
         label = int(prob >= THRESH)
         st.write(
             f"Using threshold = **{THRESH:.3f}**, predicted class = **{label}** "
-            "(1 = positive, 0 = negative)."
+            "(1 = adverse outcome, 0 = favourable outcome)."
         )
 
         # ====== 6) SHAP waterfall explanation ======
