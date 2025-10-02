@@ -115,49 +115,37 @@ if st.button("Start Predict", use_container_width=True):
             "(1 = adverse outcome, 0 = favourable outcome)."
         )
 
-        # ====== 6) SHAP waterfall explanation ======
+        # ====== 5) SHAP contribution bar (CatBoost native) ======
     try:
         pool = Pool(x, feature_names=FEATURES)
         shap_vals = model.get_feature_importance(pool, type="ShapValues")
-        contrib = shap_vals[0, :-1]   # feature contributions
-        base = shap_vals[0, -1]       # base value (raw logit)
-
+        contrib = shap_vals[0, :-1]  # per-feature raw log-odds contributions
         df = pd.DataFrame({
             "feature": FEATURES,
             "value": [raw_inputs[f] for f in FEATURES],
             "contrib": contrib
-        })
+        }).sort_values("contrib", ascending=True)
 
-        # 从 base value 开始逐步累加
-        df = df.sort_values("contrib", key=abs, ascending=False).reset_index(drop=True)
-        df["cum"] = base + df["contrib"].cumsum()
-        x_labels = [f"{f} = {v}" for f, v in zip(df["feature"], df["value"])]
-
-        # 构建 waterfall
-        fig = go.Figure(go.Waterfall(
-            name="SHAP",
+        colors = ["#1f77b4" if c < 0 else "#d62728" for c in df["contrib"]]
+        fig = go.Figure(go.Bar(
+            x=df["contrib"],
+            y=df["feature"],
             orientation="h",
-            measure=["absolute"] + ["relative"] * len(df),
-            y=["Base value"] + x_labels,
-            x=[base] + df["contrib"].tolist(),
-            connector={"line": {"color": "rgb(63, 63, 63)"}},
-            text=[f"{c:+.2f}" for c in [base] + df["contrib"].tolist()],
+            marker_color=colors,
+            hovertext=[f"value={v}" for v in df["value"]],
+            hoverinfo="text+x+y"
         ))
-
         fig.update_layout(
-            title="SHAP Waterfall Explanation",
-            xaxis_title="Raw log-odds contribution",
-            yaxis_title="",
-            showlegend=False,
-            height=600,
+            title="Feature contributions (SHAP, raw score space)",
+            xaxis_title="Contribution (±)",
+            yaxis_title="Feature",
+            height=420,
+            margin=dict(l=120, r=40, t=50, b=40)
         )
         st.plotly_chart(fig, use_container_width=True)
-
-        st.caption(
-            "Waterfall plot: starting from base value, each feature pushes the prediction up (red) or down (blue) until the final probability."
-        )
+        st.caption("Red = higher prediction, Blue = lower prediction. Values are SHAP contributions in raw log-odds space.")
     except Exception as e:
-        st.warning(f"Failed to draw SHAP waterfall chart: {e}")
+        st.warning(f"Failed to draw explanation chart: {e}")
 
 # ====== 7) Notes ======
 st.markdown("---")
