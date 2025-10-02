@@ -1,0 +1,10 @@
+# Web & UI
+streamlit>=1.33,<2
+
+# Model & math
+catboost
+numpy
+pandas
+plotly
+
+
